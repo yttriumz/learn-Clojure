@@ -1,4 +1,4 @@
-(ns braveclojure.ch3-1-syntax)
+(ns ch3-1-syntax)
 
 ;; ================================
 ;; Forms

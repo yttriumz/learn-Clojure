@@ -1,4 +1,4 @@
-(ns braveclojure.ch3-2-data-structures)
+(ns ch3-2-data-structures)
 
 ;; ================================
 ;; Strings
