@@ -1,0 +1,2 @@
+{:min-bb-version "1.12.195"
+ :paths ["lib"]}
