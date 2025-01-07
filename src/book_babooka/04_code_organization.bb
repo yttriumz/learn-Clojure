@@ -46,7 +46,9 @@
          '[journal.add :as add]
          '[journal.list :as list])
 
-(def cli-opts
+(declare help)
+
+(def spec-add
   {:entry     {:alias   :e
                :desc    "Your dreams."
                :require true}
@@ -54,20 +56,27 @@
                :desc   "A unix timestamp, when you recorded this."
                :coerce {:timestamp :long}}})
 
+(def spec-list
+  {:reverse {:desc "Reverse the order"
+             :coerce  :boolean}})
+
 (defn help
   [_]
   (println
    (str "add" "\n"
-        (cli/format-opts {:spec cli-opts}) "\n"
-        "list")))
+        (cli/format-opts {:spec spec-add}) "\n"
+        "list"))
+  ;; (System/exit 1)
+  )
 
 (def table
   [;; {:cmds ["add"] :fn add/add-entry :spec cli-opts}
-   {:cmds ["add"], :fn #(add/add-entry (:opts %)), :spec cli-opts}
+   {:cmds ["add"], :fn #(add/add-entry (:opts %)), :spec spec-add}
    {:cmds ["list"], :fn #(list/list-entries %)}
-   {:cmds [], :fn help}])
+  ;;  {:cmds [], :fn #(do (help %) (System/exit 1))}
+   ])
 
-(cli/dispatch table *command-line-args*)
+(cli/dispatch table *command-line-args* {:error-fn #(do (help %) (System/exit 1))})
 ;; Now the file is only responsible for parsing command line arguments
 ;; and dispatching to the correct function.
 ;; The add functionality has been moved to another namespace.
