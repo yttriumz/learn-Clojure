@@ -73,7 +73,7 @@
   [;; {:cmds ["add"] :fn add/add-entry :spec cli-opts}
    {:cmds ["add"], :fn #(add/add-entry (:opts %)), :spec spec-add}
    {:cmds ["list"], :fn #(list/list-entries %)}
-  ;;  {:cmds [], :fn #(do (help %) (System/exit 1))}
+   {:cmds [], :fn #(do (help %) (System/exit 0))}
    ])
 
 (cli/dispatch table *command-line-args* {:error-fn #(do (help %) (System/exit 1))})
