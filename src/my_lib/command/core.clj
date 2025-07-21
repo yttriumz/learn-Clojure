@@ -6,17 +6,10 @@
             ;; My lib
             [bling.core :refer [bling]]))
 
-(defn- sys-red [& args]
-  (->> args
-       (apply str)
-       (conj [:system-red])
-       bling))
-
-(defn- sys-yellow [& args]
-  (->> args
-       (apply str)
-       (conj [:system-yellow])
-       bling))
+(defn- sys-red [& args]    (->> args (apply str) (conj [:system-red]) bling))
+(defn- sys-yellow [& args] (->> args (apply str) (conj [:system-yellow]) bling))
+(defn- sys-blue [& args]   (->> args (apply str) (conj [:system-blue]) bling))
+(defn- sys-green [& args]  (->> args (apply str) (conj [:system-green]) bling))
 
 (def default-execute-opts
   {:dir           "."
@@ -36,7 +29,7 @@
     :else true))
 
 (defn execute!
-  "Executes a command and returns a map with `:exit`, `:expected-exit`, and `:success` status.
+  "Executes a command and returns a map with `:success`, `:exit`, `:expected-exit`, and `:out`.
   Accepts an optional options map as the first argument.
 
   Usage:\n
@@ -46,8 +39,8 @@
   (let [[opts cmd-vec] (if (map? (first args))
                          [(first args) (rest args)]
                          [{} args])
-        cmd-str (str/join " " cmd-vec)
-        opts (merge default-execute-opts opts)]
+        opts (merge default-execute-opts opts)
+        cmd-str (str/join " " cmd-vec)]
     (if-not (execute-args-valid? opts cmd-vec)
       {:success false}
       (try
@@ -137,14 +130,15 @@
     :else true))
 
 (defn attempt!
-  "Attempts a command up to :max-attempts times.
-   Returns `true` if success or manual pass in debugger."
+  "Attempts a command up to `:max-attempts` times.
+   Returns `true` if success or manual pass in debugger.
+   Accepts an optional options map as the first argument."
   [& args]
   (let [[opts cmd-vec] (if (map? (first args))
                          [(first args) (rest args)]
                          [{} args])
-        cmd-str (str/join " " cmd-vec)
-        opts (merge default-attempt-opts opts)]
+        opts (merge default-attempt-opts opts)
+        cmd-str (str/join " " cmd-vec)]
     (when (attempt-args-valid? opts)
       (let [{:keys [dir expected-exit continue max-attempts delay-ms debug]} opts
             execute-opts {:dir dir
@@ -158,7 +152,7 @@
                 (do (println "[*] Retry in" (float (/ delay-ms 1000)) "seconds.")
                     (Thread/sleep delay-ms)
                     (recur (inc attempt)))
-                (do (println (sys-yellow "[!] Max attempts reached."))
+                (do (println (sys-yellow "[!] Max (" max-attempts ") attempts reached:") cmd-str)
                     (when debug
                       (println "[*] Invoking debugger. Use 'help' for help.")
                       (apply debug! execute-opts cmd-vec))))))))))
