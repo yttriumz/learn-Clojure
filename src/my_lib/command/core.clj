@@ -17,15 +17,15 @@
    :expected-exit 0
    :continue      true})
 
-(defn- execute-args-valid? [opts cmd-vec]
+(defn- execute-args-valid? [opts cmd-seq]
   (cond
     (some nil? (vals opts))              (println (sys-red "[X] Found nil in execute options:") opts)
     (not (fs/exists? (:dir opts)))       (println (sys-red "[X] Execute option :dir does not exist:") (str (fs/absolutize (:dir opts))))
     (not (boolean? (:capture-out opts))) (println (sys-red "[X] Execute option :capture-out must be a boolean."))
     (not (int? (:expected-exit opts)))   (println (sys-red "[X] Execute option :expected-exit must be an integer."))
     (not (boolean? (:continue opts)))    (println (sys-red "[X] Execute option :continue must be a boolean."))
-    (empty? cmd-vec)                     (println (sys-red "[X] Command cannot be empty."))
-    (empty? (first cmd-vec))             (println (sys-red "[X] Command cannot be empty."))
+    (empty? cmd-seq)                     (println (sys-red "[X] Command cannot be empty."))
+    (empty? (first cmd-seq))             (println (sys-red "[X] Command cannot be empty."))
     :else true))
 
 (defn execute!
@@ -36,19 +36,19 @@
   - `(execute! \"ls\" \"-l\")`
   - `(execute! {:dir \"/tmp\"} \"ls\" \"-l\")`"
   [& args]
-  (let [[opts cmd-vec] (if (map? (first args))
+  (let [[opts cmd-seq] (if (map? (first args))
                          [(first args) (rest args)]
                          [{} args])
         opts (merge default-execute-opts opts)
-        cmd-str (str/join " " cmd-vec)]
-    (if-not (execute-args-valid? opts cmd-vec)
+        cmd-str (-> cmd-seq pprint with-out-str str/trim-newline)]
+    (if-not (execute-args-valid? opts cmd-seq)
       {:success false}
       (try
         (let [{:keys [dir capture-out expected-exit continue]} opts
               shell-opts {:dir dir
                           :out (if capture-out :string :inherit)
                           :continue continue}
-              {:keys [exit out]} (apply shell shell-opts cmd-vec)
+              {:keys [exit out]} (apply shell shell-opts cmd-seq)
               return {:success false
                       :exit exit
                       :expected-exit expected-exit
@@ -76,7 +76,7 @@
           (pprint e)
           {:success false :e e})))))
 
-(defn- debug! [execute-opts & cmd-vec]
+(defn- debug! [execute-opts & cmd-seq]
   (loop []
     (print (sys-yellow "(debug)> "))
     (flush)
@@ -85,8 +85,8 @@
         #{"h" "help"}
         (do (println "Available options:\n"
                      " h help   Print this help message.\n"
-                     " p print  Print the command and expected exit code.\n"
-                     " r redo   Redo the command. If successful, exit debugger.\n"
+                     " p print  Print the command sequence and execute options.\n"
+                     " r redo   Re-execute the command. If success, exit debugger.\n"
                      " s shell  Invoke an interactive shell.\n"
                      "   pass   Pass this step and continue the original program.\n"
                      "   fail   Fail this step and continue the original program.\n"
@@ -94,12 +94,12 @@
             (recur))
 
         #{"p" "print"}
-        (do (println "Execute command:" (str/join " " cmd-vec))
-            (println "Execute options:" execute-opts)
+        (do (println "cmd-seq:" (-> cmd-seq pprint with-out-str str/trim-newline))
+            (println "options:" execute-opts)
             (recur))
 
         #{"r" "redo"}
-        (or (:success (apply execute! execute-opts cmd-vec))
+        (or (:success (apply execute! execute-opts cmd-seq))
             (recur))
 
         #{"s" "shell"}
@@ -134,11 +134,11 @@
    Returns `true` if success or manual pass in debugger.
    Accepts an optional options map as the first argument."
   [& args]
-  (let [[opts cmd-vec] (if (map? (first args))
+  (let [[opts cmd-seq] (if (map? (first args))
                          [(first args) (rest args)]
                          [{} args])
         opts (merge default-attempt-opts opts)
-        cmd-str (str/join " " cmd-vec)]
+        cmd-str (-> cmd-seq pprint with-out-str str/trim-newline)]
     (when (attempt-args-valid? opts)
       (let [{:keys [dir expected-exit continue max-attempts delay-ms debug]} opts
             execute-opts {:dir dir
@@ -147,12 +147,12 @@
                           :continue continue}]
         (loop [attempt 1]
           (println (str "[*] Attempting (" attempt "/" max-attempts "): " cmd-str))
-          (or (:success (apply execute! execute-opts cmd-vec))
+          (or (:success (apply execute! execute-opts cmd-seq))
               (if (< attempt max-attempts)
                 (do (println "[*] Retry in" (float (/ delay-ms 1000)) "seconds.")
                     (Thread/sleep delay-ms)
                     (recur (inc attempt)))
-                (do (println (sys-yellow "[!] Max (" max-attempts ") attempts reached:") cmd-str)
+                (do (println (sys-yellow "[!] Max " max-attempts " attempts reached:") cmd-str)
                     (when debug
                       (println "[*] Invoking debugger. Use 'help' for help.")
-                      (apply debug! execute-opts cmd-vec))))))))))
+                      (apply debug! execute-opts cmd-seq))))))))))
